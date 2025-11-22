@@ -1,0 +1,35 @@
+services:
+  mosquitto:
+    image: eclipse-mosquitto:2
+    container_name: mosquitto
+    ports:
+      - "1883:1883"        # MQTT
+    volumes:
+      - ./mosquitto.conf:/mosquitto/config/mosquitto.conf:ro
+      - mosquitto_data:/mosquitto/data
+    restart: unless-stopped
+
+  backend:
+    build: ./backend
+    container_name: backend
+    environment:
+      - MQTT_HOST=mosquitto
+      - MQTT_PORT=1883
+    ports:
+      - "8000:8000"        # HTTP API
+    depends_on:
+      - mosquitto
+    restart: unless-stopped
+
+  device:
+    build: ./device
+    environment:
+      - MQTT_HOST=mosquitto
+      - MQTT_PORT=1883
+      # DEVICE_ID will be overridden when we scale
+    depends_on:
+      - mosquitto
+    restart: unless-stopped
+
+volumes:
+  mosquitto_data:
