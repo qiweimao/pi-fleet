@@ -21,20 +21,20 @@ sampling_interval_sec = 5  # default, can be changed via config
 mqtt_connected = threading.Event()
 
 
-def on_connect(client, userdata, flags, rc, properties=None):
-    if rc == 0:
-        print(f"[{DEVICE_ID}] Connected to MQTT with rc={rc}")
+def on_connect(client, userdata, flags, reason_code, properties=None):
+    if reason_code == 0:
+        print(f"[{DEVICE_ID}] Connected to MQTT with reason_code={reason_code}")
         # Listen for config just for this device
         topic = f"devices/{DEVICE_ID}/config"
         client.subscribe(topic)
         print(f"[{DEVICE_ID}] Subscribed to {topic}")
         mqtt_connected.set()  # Signal that connection is established
     else:
-        print(f"[{DEVICE_ID}] Failed to connect to MQTT with rc={rc}")
+        print(f"[{DEVICE_ID}] Failed to connect to MQTT with reason_code={reason_code}")
 
 
-def on_disconnect(client, userdata, rc):
-    print(f"[{DEVICE_ID}] Disconnected from MQTT with rc={rc}")
+def on_disconnect(client, userdata, reason_code, properties=None):
+    print(f"[{DEVICE_ID}] Disconnected from MQTT with reason_code={reason_code}")
     mqtt_connected.clear()
 
 
@@ -50,7 +50,7 @@ def on_message(client, userdata, msg):
             print(f"[{DEVICE_ID}] Failed to parse config: {e}")
 
 
-client = mqtt.Client(client_id=DEVICE_ID)
+client = mqtt.Client(client_id=DEVICE_ID, callback_api_version=mqtt.CallbackAPIVersion.VERSION2)
 client.on_connect = on_connect
 client.on_disconnect = on_disconnect
 client.on_message = on_message

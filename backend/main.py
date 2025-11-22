@@ -1,4 +1,5 @@
 import os
+import sys
 import json
 import threading
 import time
@@ -19,19 +20,20 @@ mqtt_connected = threading.Event()
 # ---- MQTT callbacks ----
 def on_connect(client, userdata, flags, rc, properties=None):
     if rc == 0:
-        print("Backend connected to MQTT with result code", rc)
-        # Subscribe to all device status messages
+        print("Backend connected to MQTT with result code", rc, flush=True)
+        # Subscribe to all device status and telemetry messages
         client.subscribe("devices/+/status")
+        client.subscribe("devices/+/telemetry")
         mqtt_connected.set()
     else:
-        print(f"Backend failed to connect to MQTT with result code {rc}")
+        print(f"Backend failed to connect to MQTT with result code {rc}", flush=True)
 
 def on_disconnect(client, userdata, rc):
-    print(f"Backend disconnected from MQTT with rc={rc}")
+    print(f"Backend disconnected from MQTT with rc={rc}", flush=True)
     mqtt_connected.clear()
 
 def on_message(client, userdata, msg):
-    print(f"[MQTT] {msg.topic}: {msg.payload.decode(errors='ignore')}")
+    print(f"[MQTT] {msg.topic}: {msg.payload.decode(errors='ignore')}", flush=True)
 
 mqtt_client.on_connect = on_connect
 mqtt_client.on_disconnect = on_disconnect
@@ -43,27 +45,27 @@ def mqtt_loop():
     
     for attempt in range(max_retries):
         try:
-            print(f"Backend attempting to connect to MQTT at {MQTT_HOST}:{MQTT_PORT} (attempt {attempt + 1}/{max_retries})")
+            print(f"Backend attempting to connect to MQTT at {MQTT_HOST}:{MQTT_PORT} (attempt {attempt + 1}/{max_retries})", flush=True)
             mqtt_client.connect(MQTT_HOST, MQTT_PORT, 60)
             mqtt_client.loop_forever()
             break
         except Exception as e:
-            print(f"Backend connection attempt failed: {e}")
+            print(f"Backend connection attempt failed: {e}", flush=True)
             if attempt < max_retries - 1:
-                print(f"Backend retrying in {retry_delay} seconds...")
+                print(f"Backend retrying in {retry_delay} seconds...", flush=True)
                 time.sleep(retry_delay)
             else:
-                print("Backend max retries reached. Continuing without MQTT...")
+                print("Backend max retries reached. Continuing without MQTT...", flush=True)
 
 threading.Thread(target=mqtt_loop, daemon=True).start()
 
 # Wait for MQTT connection before starting server (with timeout)
-print("Backend waiting for MQTT connection...")
+print("Backend waiting for MQTT connection...", flush=True)
 mqtt_connected.wait(timeout=30)
 if mqtt_connected.is_set():
-    print("Backend MQTT connected. Starting API server...")
+    print("Backend MQTT connected. Starting API server...", flush=True)
 else:
-    print("Backend MQTT connection timeout. Starting API server anyway (publish may fail)...")
+    print("Backend MQTT connection timeout. Starting API server anyway (publish may fail)...", flush=True)
 
 # ---- API models ----
 class ConfigBody(BaseModel):
@@ -86,7 +88,7 @@ def set_config(device_id: str, body: ConfigBody):
     }
     result = mqtt_client.publish(topic, json.dumps(payload))
     if result.rc == mqtt.MQTT_ERR_SUCCESS:
-        print(f"Sent config to {device_id}: {payload}")
+        print(f"Sent config to {device_id}: {payload}", flush=True)
         return {"sent_to": device_id, "config": payload}
     else:
         return {"error": f"Failed to publish: {result.rc}", "sent_to": device_id, "config": None}
