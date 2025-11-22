@@ -1,0 +1,19 @@
+# Python virtual environments
+backend/venv/
+device/venv/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+
+# IDE
+# Allow committing .vscode/settings.json for shared Python interpreter config
+.vscode/*
+!.vscode/settings.json
+.idea/
+
+# Environment variables
+.env
+.env.local
+
